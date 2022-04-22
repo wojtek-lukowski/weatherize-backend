@@ -1,6 +1,7 @@
 // import { express } from 'express';
 // import { http } from 'http';
 const express = require('express');
+const cors = require('cors');
 const http = require('http');
 const bodyParser = require('body-parser');
 const uuid = require('uuid');
@@ -14,24 +15,23 @@ mongoose.connect('mongodb://localhost:27017/weatherize', { useNewUrlParser: true
 const app = express();
 app.use(bodyParser.json());
 
-let users = [
-  {
-    id: 1,
-  username: 'wojtek',
-  password: 'wojtek',
-  email: 'wojtek@gmail.com',
-  favorites: ['Warszawa', 'Tokyo', 'Singapore']
-},
-{
-  id: 2,
-  username: 'test',
-  password: 'test',
-  email: 'test@gmail.com',
-  favorites: ['Oslo', 'Reykjavik', 'Sydney']
-}
-]
+let auth = require('./auth')(app);
+const passport = require('passport');
+require('./passport');
 
-console.log('Weatherize backend running on port 8080');
+let allowedOrigins = ['http://localhost:8080']
+app.use(cors({
+  origin: (origin, callback) => {
+    if(!origin) return callback(null, true);
+    if(allowedOrigins.indexOf(origin) === -1) {
+      let message = 'The CORS policy for this application does not allow access from origin', origin;
+      return callback(new Error(message ), false);
+    }
+    return callback(null, true);
+  }
+}));
+
+
 
 app.get('/', (req, res )=> {
   res.send('Weatherize backend index.js');
@@ -42,28 +42,22 @@ app.get('/test', (req, res )=> {
 });
 
 //get all users
-
-// app.get('/users', (req, res )=> {
-//   res.json(users);
-// });
-
-app.get('/users', (req, res )=> {
+app.get('/users', passport.authenticate('jwt', { session: false }), (req, res )=> {
   Users.find().then(users => res.json(users));
 });
 
 //get user by username
-app.get('/users/:username', (req, res) => {
+app.get('/users/:username', passport.authenticate('jwt', { session: false }), (req, res) => {
   Users.findOne({ username: req.body.username })
   .then(user => {
     res.json(user);
     res.status(201).send(user)
   })
-.catch(error => {
-  console.log(error);
-  res.status(500).send(error);
+  .catch(error => {
+    console.log(error);
+    res.status(500).send(error);
+  })
 })
-})
-
 
 //add new user
 app.post('/users', (req, res) => {
@@ -87,7 +81,7 @@ app.post('/users', (req, res) => {
 })
 
 //add to favs
-app.post('/users/:username/:location', (req,res) => {
+app.post('/users/:username/:location', passport.authenticate('jwt', { session: false }), (req,res) => {
   Users.findOneAndUpdate({ username: req.params.username },
     { $addToSet: { favorites: req.params.location }
   },
@@ -103,7 +97,7 @@ app.post('/users/:username/:location', (req,res) => {
 })
 
 // remove from favs
-app.delete('/users/:username/:location', (req,res) => {
+app.delete('/users/:username/:location', passport.authenticate('jwt', { session: false }), (req,res) => {
   Users.findOneAndUpdate({ username: req.params.username },
     { $pull: { favorites: req.params.location } },
   { new: true },
@@ -118,7 +112,7 @@ app.delete('/users/:username/:location', (req,res) => {
 })
 
 //delete user
-app.delete('/users/:username', (req, res) => {
+app.delete('/users/:username', passport.authenticate('jwt', { session: false }), (req, res) => {
   Users.findOneAndRemove({ username: req.params.username })
   .then(user => {
     if (!user) {
@@ -132,18 +126,6 @@ app.delete('/users/:username', (req, res) => {
     res.status(500).send(error);
   })
 })
-
-
-
-// app.delete('/users/:username', (req, res) => {
-//   let user = users.find(user => { return user.username === req.params.username})
-// console.log('params username: ', req.params.username);
-// console.log('user to delete: ', user);
-//   if (user) {
-//     users = users.filter((user) => { return user.username !== req.params.id });
-//     res.status(201).send('User ', user.username, ' was deleted.');
-//   }
-// });
 
 //error handling
 app.use((err, req, res, next) => {
