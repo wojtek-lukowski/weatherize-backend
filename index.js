@@ -4,6 +4,12 @@ const express = require('express');
 const http = require('http');
 const bodyParser = require('body-parser');
 const uuid = require('uuid');
+const mongoose = require('mongoose');
+const Models = require('./models.js');
+const res = require('express/lib/response');
+const Users = Models.User;
+
+mongoose.connect('mongodb://localhost:27017/weatherize', { useNewUrlParser: true, useUnifiedTopology: true });
 
 const app = express();
 app.use(bodyParser.json());
@@ -36,65 +42,108 @@ app.get('/test', (req, res )=> {
 });
 
 //get all users
+
+// app.get('/users', (req, res )=> {
+//   res.json(users);
+// });
+
 app.get('/users', (req, res )=> {
-  res.json(users);
+  Users.find().then(users => res.json(users));
 });
 
 //get user by username
-app.get('/users/:username', (req, res )=> {
-  res.json(users.find((user) => {
-    return user.username === req.params.username
-  }));
-});
+app.get('/users/:username', (req, res) => {
+  Users.findOne({ username: req.body.username })
+  .then(user => {
+    res.json(user);
+    res.status(201).send(user)
+  })
+.catch(error => {
+  console.log(error);
+  res.status(500).send(error);
+})
+})
+
 
 //add new user
-app.post('/users', (req, res ) => {
-
-let newUser = req.body;
-
-console.log('new user: ', newUser);
-
-if (!newUser.username) {
-  const message = 'Missing username';
-  res.status(400).send(message);
-} else {
-  newUser.id = uuid.v4();
-  users.push(newUser);
-  res.status(201).send(newUser);
-}
-});
+app.post('/users', (req, res) => {
+  Users.findOne({ username: req.body.username })
+  .then(user => {
+    if (user) {
+      return res.status(400).send(req.body.username + 'already exists');
+    } else {
+      Users.create({
+        username: req.body.username,
+        password: req.body.password,
+        email: req.body.email
+      })
+      .then(user => { res.status(201).json(user), console.log(user, 'has been added') })
+      .catch(error => {
+        console.log(error);
+        res.status(500).send(error);
+      })
+    }
+  })
+})
 
 //add to favs
 app.post('/users/:username/:location', (req,res) => {
-  let newLocation = req.params.location;
-  // newLocation = encodeURIComponent(newLocation)
-  let user = users.find(user => { return user.username === req.params.username })
-  user.favorites.push(decodeURIComponent(newLocation));
-  // res.status(201).send(newLocation, 'added to favs');
-  console.log(newLocation, 'added to favs')
-  res.status(201).send(req.body)
+  Users.findOneAndUpdate({ username: req.params.username },
+    { $addToSet: { favorites: req.params.location }
+  },
+  { new: true },
+  (error, updatedUser) => {
+    if (error) {
+      console.log(error);
+      res.status(500).send(error);
+    } else {
+      res.json(updatedUser);
+    }
+  })
 })
 
 // remove from favs
 app.delete('/users/:username/:location', (req,res) => {
-  let locationToRemove = req.params.location;
-  let user = users.find(user => { return user.username === req.params.username })
-  user.favorites = user.favorites.filter(location => { return location !== locationToRemove })
-  // res.status(201).send(locationToRemove, 'removed')
-  console.log(locationToRemove, 'removed from favs')
-  res.status(201).send(req.body)
+  Users.findOneAndUpdate({ username: req.params.username },
+    { $pull: { favorites: req.params.location } },
+  { new: true },
+  (error, updatedUser) => {
+    if (error) {
+      console.log(error);
+      res.status(500).send(error);
+    } else {
+      res.json(updatedUser);
+    }
+  })
 })
 
 //delete user
 app.delete('/users/:username', (req, res) => {
-  let user = users.find(user => { return user.username === req.params.username})
-console.log('params username: ', req.params.username);
-console.log('user to delete: ', user);
-  if (user) {
-    users = users.filter((user) => { return user.username !== req.params.id });
-    res.status(201).send('User ', user.username, ' was deleted.');
-  }
-});
+  Users.findOneAndRemove({ username: req.params.username })
+  .then(user => {
+    if (!user) {
+      res.status(400).send(req.params.username, 'not found');
+    } else {
+      res.status(200).send(req.params.username, 'has been deleted');
+    }
+  })
+  .catch(error => {
+    console.log(error);
+    res.status(500).send(error);
+  })
+})
+
+
+
+// app.delete('/users/:username', (req, res) => {
+//   let user = users.find(user => { return user.username === req.params.username})
+// console.log('params username: ', req.params.username);
+// console.log('user to delete: ', user);
+//   if (user) {
+//     users = users.filter((user) => { return user.username !== req.params.id });
+//     res.status(201).send('User ', user.username, ' was deleted.');
+//   }
+// });
 
 //error handling
 app.use((err, req, res, next) => {
