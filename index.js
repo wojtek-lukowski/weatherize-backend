@@ -9,6 +9,7 @@ const mongoose = require('mongoose');
 const Models = require('./models.js');
 const res = require('express/lib/response');
 const Users = Models.User;
+const { check, validationResult } = require('express-validator');
 
 mongoose.connect('mongodb://localhost:27017/weatherize', { useNewUrlParser: true, useUnifiedTopology: true });
 
@@ -60,7 +61,19 @@ app.get('/users/:username', passport.authenticate('jwt', { session: false }), (r
 })
 
 //add new user
-app.post('/users', (req, res) => {
+app.post('/users',
+[
+  check('username', 'Username is required').isLength({min: 5}),
+  check('username', 'Username can contain only latters and numbers').isAlphanumeric(),
+  check('password', 'Password is required').not().isEmpty(),
+  check('email', 'Check email format').isEmail()
+],
+(req, res) => {
+  let errors = validationResult(req);
+  if (!errors.isEmpty()) {
+    return res.status(422).json({ errors: errors.array() })
+  }
+  let hashedPassword = Users.hashPassword(req.body.password);
   Users.findOne({ username: req.body.username })
   .then(user => {
     if (user) {
@@ -68,7 +81,7 @@ app.post('/users', (req, res) => {
     } else {
       Users.create({
         username: req.body.username,
-        password: req.body.password,
+        password: hashedPassword,
         email: req.body.email
       })
       .then(user => { res.status(201).json(user), console.log(user, 'has been added') })
@@ -133,7 +146,8 @@ app.use((err, req, res, next) => {
   res.status(500).send('Something broke');
 });
 
-app.listen(8080, () => {
-  console.log('Weatherize backend listening on port 8080');
+const port = process.env.PORT || 8080;
+app.listen(port, '0.0.0.0.',() => {
+  console.log('Weatherize backend listening on port', port);
 });
 
