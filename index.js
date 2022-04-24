@@ -11,7 +11,8 @@ const res = require('express/lib/response');
 const Users = Models.User;
 const { check, validationResult } = require('express-validator');
 
-mongoose.connect('mongodb://localhost:27017/weatherize', { useNewUrlParser: true, useUnifiedTopology: true });
+// mongoose.connect('mongodb://localhost:27017/weatherize', { useNewUrlParser: true, useUnifiedTopology: true });
+mongoose.connect(process.env.CONNECTION_URI, { useNewUrlParser: true, useUnifiedTopology: true });
 
 const app = express();
 app.use(bodyParser.json());
@@ -31,8 +32,6 @@ app.use(cors({
     return callback(null, true);
   }
 }));
-
-
 
 app.get('/', (req, res )=> {
   res.send('Weatherize backend index.js');
@@ -146,8 +145,12 @@ app.use((err, req, res, next) => {
   res.status(500).send('Something broke');
 });
 
-const port = process.env.PORT || 8080;
-app.listen(port, '0.0.0.0.',() => {
-  console.log('Weatherize backend listening on port', port);
+app.listen(8080, () => {
+  console.log('Weatherize backend listening on port 8080');
 });
+
+// const port = process.env.PORT || 8080;
+// app.listen(port, '0.0.0.0.',() => {
+//   console.log('Weatherize backend listening on port', port);
+// });
 
