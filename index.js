@@ -48,8 +48,8 @@ app.get('/users', passport.authenticate('jwt', { session: false }), (req, res )=
 
 //get user by username
 app.get('/users/:username', 
-// passport.authenticate('jwt', 
-{ session: false }), (req, res) => {
+// passport.authenticate('jwt', { session: false }), 
+(req, res) => {
   Users.findOne({ username: req.params.username })
   .then(user => {
     res.json(user);
