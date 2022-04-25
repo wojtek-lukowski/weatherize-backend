@@ -21,7 +21,7 @@ let auth = require('./auth')(app);
 const passport = require('passport');
 require('./passport');
 
-let allowedOrigins = ['http://localhost:8080']
+let allowedOrigins = ['http://localhost:8080', 'http://localhost:3000', 'https://wojtek-lukowski.github.io']
 app.use(cors({
   origin: (origin, callback) => {
     if(!origin) return callback(null, true);
