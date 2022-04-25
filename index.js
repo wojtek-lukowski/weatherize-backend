@@ -16,10 +16,7 @@ mongoose.connect(process.env.CONNECTION_URI, { useNewUrlParser: true, useUnified
 
 const app = express();
 app.use(bodyParser.json());
-
-let auth = require('./auth')(app);
-const passport = require('passport');
-require('./passport');
+app.use(cors());
 
 let allowedOrigins = ['http://localhost:8080', 'http://localhost:3000', 'https://wojtek-lukowski.github.io']
 // allowedOrigins = ['*']
@@ -33,6 +30,10 @@ app.use(cors({
     return callback(null, true);
   }
 }));
+
+let auth = require('./auth')(app);
+const passport = require('passport');
+require('./passport');
 
 app.get('/', (req, res )=> {
   res.send('Weatherize backend index.js');
