@@ -53,11 +53,11 @@ app.get('/users/:username',
   Users.findOne({ username: req.params.username })
   .then(user => {
     res.json(user);
-    res.status(201).send(user)
+    // res.status(201).send(user)
   })
   .catch(error => {
     console.log(error);
-    res.status(500).send(error);
+    // res.status(500).send(error);
   })
 })
 
