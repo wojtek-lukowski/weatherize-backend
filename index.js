@@ -1,5 +1,6 @@
 // import { express } from 'express';
 // import { http } from 'http';
+const axios = require('axios');
 const express = require('express');
 const cors = require('cors');
 const http = require('http');
@@ -10,15 +11,15 @@ const Models = require('./models.js');
 const res = require('express/lib/response');
 const Users = Models.User;
 const { check, validationResult } = require('express-validator');
+const apiKey = process.env.OPEN_WEATHER_API_KEY;
 
-// mongoose.connect('mongodb://localhost:27017/weatherize', { useNewUrlParser: true, useUnifiedTopology: true });
 mongoose.connect(process.env.CONNECTION_URI, { useNewUrlParser: true, useUnifiedTopology: true });
 
 const app = express();
 app.use(bodyParser.json());
 app.use(cors());
 
-let allowedOrigins = ['http://localhost:8080', 'http://localhost:3000', 'https://wojtek-lukowski.github.io']
+let allowedOrigins = ['http://localhost:8080', 'http://localhost:3000', 'https://wojtek-lukowski.github.io', ['https://lukowski.io']]
 // allowedOrigins = ['*']
 app.use(cors({
   origin: (origin, callback) => {
@@ -152,6 +153,41 @@ app.use((err, req, res, next) => {
 // app.listen(8080, () => {
 //   console.log('Weatherize backend listening on port 8080');
 // });
+
+
+app.get('/weather', async (req, res) => {
+  const lat = req.query.lat;
+  const lon = req.query.lng; 
+  try {
+      const response = await axios.get("https://api.openweathermap.org/data/2.5/weather", {
+        params: {
+          lat,
+          lon,
+          appid: apiKey
+      }
+      })
+      res.send(response.data);
+  } catch (error) {
+      console.error(error);
+      res.status(500).send('An error occurred');
+  }
+});
+
+app.get('/city', async (req, res) => {
+  const city = req.query.city;
+  try {
+      const response = await axios.get("https://api.openweathermap.org/data/2.5/weather", {
+        params: {
+          q: city,
+          appid: apiKey
+      }
+      })
+      res.send(response.data);
+  } catch (error) {
+      console.error(error);
+      res.status(500).send('An error occurred');
+  }
+});
 
 const port = process.env.PORT || 8080;
 app.listen(port, '0.0.0.0',() => {
