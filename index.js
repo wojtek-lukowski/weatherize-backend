@@ -19,7 +19,7 @@ const app = express();
 app.use(bodyParser.json());
 app.use(cors());
 
-let allowedOrigins = ['http://localhost:8080', 'http://localhost:3000', 'https://wojtek-lukowski.github.io', ['https://lukowski.io']]
+let allowedOrigins = ['http://localhost:8080', 'http://localhost:3000', 'https://wojtek-lukowski.github.io', 'https://lukowski.io']
 // allowedOrigins = ['*']
 app.use(cors({
   origin: (origin, callback) => {
